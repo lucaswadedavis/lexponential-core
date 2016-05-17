@@ -163,31 +163,32 @@ def index ():
     return render_template('index.html')
 
 
-def flashcard_deck (user):
+def flashcard_deck (user, chosen_language):
     now = datetime.utcnow()
     deck_size = 10
     lexemes = User_Lexeme \
                 .query \
                 .filter(User_Lexeme.owner==user.id) \
+                .filter(User_Lexeme.from_language==chosen_language) \
                 .filter(User_Lexeme.active_after<=now) \
                 .order_by(User_Lexeme.lexeme_count.desc()) \
                 .limit(deck_size)
     return [lexeme.serialize for lexeme in lexemes]
 
 
-@app.route('/flashcards', methods=['GET'])
+@app.route('/flashcards/<chosen_language>', methods=['GET'])
 @cross_origin(headers=['Content-Type', 'Authorization'])
 @requires_auth
-def get_flashcards ():
+def get_flashcards (chosen_language):
     user = verify_or_create_user()
-    flashcards = flashcard_deck(user)
+    flashcards = flashcard_deck(user, chosen_language)
     return jsonify({'flashcards': flashcards})
 
 
-@app.route('/flashcards', methods=['POST'])
+@app.route('/flashcards/<chosen_language>', methods=['POST'])
 @cross_origin(headers=['Content-Type', 'Authorization'])
 @requires_auth
-def verify_flashcards ():
+def verify_flashcards (chosen_language):
     user = verify_or_create_user()
     payload = request.get_json()
     lexeme_ids = [lexeme['id'] for lexeme in payload['lexemes']]
@@ -196,11 +197,12 @@ def verify_flashcards ():
         User_Lexeme \
             .query \
             .filter(User_Lexeme.id==id) \
+            .filter(User_Lexeme.from_language==chosen_language) \
             .update({"success_count": lexeme.success_count + 1, "active_after": datetime.utcnow() + timedelta(minutes=5**lexeme.success_count + 2)}, synchronize_session=False)
         db.session.commit()
     user.points = user.points + 10
     db.session.commit()
-    flashcards = flashcard_deck(user)
+    flashcards = flashcard_deck(user, chosen_language)
     return jsonify({'flashcards': flashcards})
 
 
@@ -240,10 +242,10 @@ def create_language ():
     return jsonify({'success': True})
 
 
-@app.route('/lexemes')
+@app.route('/lexemes/<chosen_language>')
 @cross_origin(headers=['Content-Type', 'Authorization'])
 @requires_auth
-def get_lexemes ():
+def get_lexemes (chosen_language):
     user = verify_or_create_user()
     lexemes = [lexeme.serialize for lexeme in User_Lexeme.query.filter_by(owner=user.id).order_by(User_Lexeme.lexeme_count.desc()).all()]
     return jsonify({'lexemes': lexemes})
@@ -269,8 +271,8 @@ def create_lexeme ():
     payload = request.get_json()
     lexemes = [lex.strip().lower() for lex in payload['lexemes'].replace('.', '').split(" ") if lex is not '']
     counted_lexemes = Counter(lexemes)
-    to_language = 'english'
-    from_language = 'spanish'
+    to_language = payload['toLanguage']
+    from_language = payload['fromLanguage']
 
     if not lexemes[0]:
         # Should actually return a 400 or maybe 412

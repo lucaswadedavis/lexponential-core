@@ -12,8 +12,9 @@ var t = {
         title.innerText = languageData.name.toUpperCase();
         append(card, title);
         
+        var button = el('button');
+       
         if (!languageData.active) {
-            var button = el('button');
             button.innerText = 'study ' + languageData.name;
             button.addEventListener('click', function () {
                 // at some point add a check to make sure the call succeeded
@@ -23,7 +24,14 @@ var t = {
             });
             append(card, button);
         } else {
+            button.innerText = 'study ' + languageData.name;
+            button.addEventListener('click', function () {
+                // at some point add a check to make sure the call succeeded
+                addLanguageCallback(languageData.abbreviation);
+                remove(button);
+            });
             card.classList.add('active');
+            append(card, button);
         }
         
         return card;
@@ -37,7 +45,10 @@ module.exports = function (coreLogic, routes) {
 
     function success (languages) {
         _.each(languages, function (languageData) {
-            append(container, t.languageCard(languageData, coreLogic.addLanguage));
+            append(container, t.languageCard(languageData, function (languageAbbreviation) {
+              coreLogic.addLanguage(languageAbbreviation);
+              routes.languages();
+            }));
         });
     };
 

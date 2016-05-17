@@ -14,8 +14,9 @@ var t = {
 
 module.exports = function (coreLogic, routes) {
   var banner = el('div', 'nav-banner');
-  
-  var languages = t.navElement('languages', routes.languages);
+  var chosenLanguage = coreLogic.getState().chosenLanguage || '';
+
+  var languages = t.navElement('languages: ' + chosenLanguage, routes.languages);
   var enterText = t.navElement('enter text', routes.main);
   var flashcards = t.navElement('flashcards', routes.flashcards);
   var dashboard = t.navElement('dashboard', routes.dashboard);

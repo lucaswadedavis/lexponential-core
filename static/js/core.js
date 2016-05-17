@@ -12,6 +12,7 @@ function deepEquals (obj1, obj2) {
 module.exports = function () {
   var state = {
     loggedIn: false,
+    chosenLanguage: '',
     points: 0,
     lexemes: [],
     languages: []
@@ -69,7 +70,7 @@ module.exports = function () {
   };
 
   this.getFlashcards = function (success, error) {
-    var url = config.baseURL + '/flashcards';
+    var url = config.baseURL + '/flashcards/' + state.chosenLanguage;
     var token = localStorage.getItem('id_token');
     d3.xhr(url)
       .header("Content-Type", "application/json")
@@ -83,19 +84,21 @@ module.exports = function () {
 
 
   this.addLanguage = function (fromLanguage, toLanguage) {
+    state.chosenLanguage = fromLanguage;
+    
     url = config.baseURL + '/languages/create';
     var token = localStorage.getItem('id_token');
     var data = JSON.stringify({
         toLanguage: config.defaultLanguage,
         fromLanguage: fromLanguage
     });
+
     d3.xhr(url)
       .header("Content-Type", "application/json")
       .header("Authorization", "Bearer " + token)
       .post(data, function(err, rawData){
         if (err) console.log(err);
         var res = rawData;
-        console.log("got response", res);
       });
 
   };
@@ -116,7 +119,7 @@ module.exports = function () {
 
 
   this.getLexemes = function (success, error) {
-    var url = config.baseURL + '/lexemes';
+    var url = config.baseURL + '/lexemes/' + state.chosenLanguage;
     var token = localStorage.getItem('id_token');
     
     /*
@@ -141,7 +144,11 @@ module.exports = function () {
   this.addLexeme = function (lexeme) {
     url = config.baseURL + '/lexemes/create';
     var token = localStorage.getItem('id_token');
-    var data = JSON.stringify({lexemes: lexeme});
+    var data = JSON.stringify({
+      fromLanguage: state.chosenLanguage,
+      toLanguage: config.defaultLanguage,
+      lexemes: lexeme
+    });
     d3.xhr(url)
       .header("Content-Type", "application/json")
       .header("Authorization", "Bearer " + token)
@@ -155,7 +162,7 @@ module.exports = function () {
 
 
   this.verifyFlashcards = function (lexemes) {
-    url = config.baseURL + '/flashcards';
+    url = config.baseURL + '/flashcards/' + state.chosenLanguage;
     var token = localStorage.getItem('id_token');
     var data = JSON.stringify({lexemes: lexemes});
     d3.xhr(url)
